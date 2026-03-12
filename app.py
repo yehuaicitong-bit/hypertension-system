@@ -7,15 +7,25 @@ from pyecharts.charts import Map
 from pyecharts import options as opts
 import streamlit.components.v1 as components
 import risk_model
-
+import matplotlib
+matplotlib.rcParams['axes.unicode_minus'] = False
+try:
+    matplotlib.rcParams['font.family'] = 'sans-serif'
+    matplotlib.rcParams['font.sans-serif'] = [
+        'WenQuanYi Zen Hei',
+        'SimHei',
+        'Microsoft YaHei',
+        'Arial Unicode MS',
+        'DejaVu Sans'
+    ]
+except:
+    pass
 st.set_page_config(
     page_title="基于大数据分析的高血压患病风险评估与预测系统",
     page_icon="❤️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-plt.rcParams['font.sans-serif'] = ['SimHei']
-plt.rcParams['axes.unicode_minus'] = False
 
 @st.cache_data
 def load_data():
