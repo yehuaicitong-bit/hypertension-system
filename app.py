@@ -1,3 +1,14 @@
+import matplotlib
+matplotlib.use('Agg')  
+matplotlib.rcParams['axes.unicode_minus'] = False
+matplotlib.rcParams['font.family'] = 'sans-serif'
+matplotlib.rcParams['font.sans-serif'] = [
+    'WenQuanYi Zen Hei',  # Linux 环境自带的中文字体
+    'DejaVu Sans',
+    'Arial Unicode MS',
+    'Liberation Sans'
+]
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -7,19 +18,6 @@ from pyecharts.charts import Map
 from pyecharts import options as opts
 import streamlit.components.v1 as components
 import risk_model
-import matplotlib
-matplotlib.rcParams['axes.unicode_minus'] = False
-try:
-    matplotlib.rcParams['font.family'] = 'sans-serif'
-    matplotlib.rcParams['font.sans-serif'] = [
-        'WenQuanYi Zen Hei',
-        'SimHei',
-        'Microsoft YaHei',
-        'Arial Unicode MS',
-        'DejaVu Sans'
-    ]
-except:
-    pass
 st.set_page_config(
     page_title="基于大数据分析的高血压患病风险评估与预测系统",
     page_icon="❤️",
@@ -337,3 +335,4 @@ elif page == "ℹ️项目介绍":
 """)
     st.divider()
     st.markdown("<p style='text-align:center'>©2026软件设计大赛｜蚌埠医科大学</p >", unsafe_allow_html=True)
+
