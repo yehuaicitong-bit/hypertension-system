@@ -170,6 +170,37 @@ elif page == "📈数据洞察":
     ax.grid(alpha=0.3)
     st.pyplot(fig)
 
+    # ========== 防控效果展示 ==========
+    st.divider()
+    st.subheader("📊 高血压防控效果（2018年数据）")
+
+    # 尝试获取2018年数据
+    if 2018 in data['year'].values:
+        row_2018 = data[data.year == 2018].iloc[0]
+        aware = row_2018.get('awareness', 0)
+        treat = row_2018.get('treatment', 0)
+        ctrl = row_2018.get('control', 0)
+        
+        col_a, col_b, col_c = st.columns(3)
+        with col_a:
+            st.metric("知晓率", f"{aware:.1f}%" if aware > 0 else "数据缺失")
+        with col_b:
+            st.metric("治疗率", f"{treat:.1f}%" if treat > 0 else "数据缺失")
+        with col_c:
+            st.metric("控制率", f"{ctrl:.1f}%" if ctrl > 0 else "数据缺失")
+        
+        st.caption("数据来源：BMJ 2023；中国慢性病与危险因素监测(CCDRFS) 2004-2018")
+        st.info(
+            "📌 **趋势解读**：\n\n"
+            "• 2010年后，18~69岁居民标化高血压患病率首次出现下降。\n"
+            "• 知晓率、治疗率有所提升，但控制率仍远低于发达国家（30%~60%）。\n"
+            "• 城乡差异正在缩小，农村地区知晓率和治疗率增幅高于城市。"
+        )
+    else:
+        st.warning("⚠️ 数据中无2018年记录，无法展示防控效果。")
+    # ======================================
+
+
 elif page == "🗺️中国地图":
     st.markdown("<h1 style='color:#d35400'>🗺️中国高血压患病率空间分布</h1>", unsafe_allow_html=True)
     st.info("数据来源：2018《中华地方病学杂志》Meta分析 + 2025《Cell》子刊全国调查")
@@ -200,7 +231,8 @@ elif page == "🗺️中国地图":
             )
         )
     )
-    components.html(map_chart.render_embed(), height=600)
+    components.html(map_chart.render_embed(), height=600)  
+
 elif page == "📡风险雷达图":
     st.markdown("<h1 style='color:#8e44ad'>📡风险因素雷达图</h1>", unsafe_allow_html=True)
     year = st.selectbox("选择年份", data.year)
@@ -269,66 +301,98 @@ elif page == "🧪政策模拟":
     st.pyplot(fig)
 
 elif page == "🔮趋势预测":
-    st.markdown("<h1 style='color:#f39c12'>🔮2025患病率预测</h1>", unsafe_allow_html=True)
-    st.markdown("模型：机器学习—线性回归模型")
-    if st.button("🚀启动预测"):
-        X = data.year.values.reshape(-1,1)
+    st.markdown("<h1 style='color:#f39c12'>🔮2026年患病率预测</h1>", unsafe_allow_html=True)
+    st.markdown("**模型**：机器学习—线性回归 (基于2000–2024年数据)")
+
+    # 预测说明
+    st.info(
+        "📌 **预测说明**：本预测基于历史数据建立的线性回归模型，仅反映长期趋势的外推。"
+        "实际患病率受政策、环境、生活方式等多重因素影响，可能与预测值存在偏差，结果仅供参考。"
+    )
+
+    if st.button("🚀 启动预测"):
+        # 准备数据
+        X = data.year.values.reshape(-1, 1)
         y = data.prevalence.values
         model = LinearRegression()
         model.fit(X, y)
-        pred_2025 = model.predict([[2025]])[0]
+        r2 = model.score(X, y)                     # 计算 R²
+        pred_2026 = model.predict([[2026]])[0]      # 预测 2026 年
 
-        fig, ax = plt.subplots(figsize=(7,4))
+        # 绘图
+        fig, ax = plt.subplots(figsize=(7, 4))
         ax.plot(X, y, 'o-', label='历史数据', color='#27ae60', linewidth=2)
-        all_years = np.arange(data.year.min(),2026).reshape(-1,1)
+
+        # 绘制拟合曲线及置信区间
+        all_years = np.arange(data.year.min(), 2027).reshape(-1, 1)
         y_pred = model.predict(all_years)
         ax.plot(all_years, y_pred, '--', label='预测趋势', color='#c0392b', linewidth=2)
-        ax.fill_between(all_years.flatten(), y_pred-1, y_pred+1, color='#f39c12', alpha=0.2)
-        ax.scatter(2025, pred_2025, color='red', s=120, zorder=5)
-        ax.text(2025, pred_2025+0.4, f"{pred_2025:.1f}%", color='red', fontweight='bold', fontsize=12)
+        ax.fill_between(all_years.flatten(), y_pred-1, y_pred+1,
+                        color='#f39c12', alpha=0.2, label='±1% 置信区间')
+
+        # 标注预测点
+        ax.scatter(2026, pred_2026, color='red', s=120, zorder=5)
+        ax.text(2026, pred_2026+0.4, f"{pred_2026:.1f}%",
+                color='red', fontweight='bold', fontsize=12, ha='center')
+
+        # 如果数据中包含 2010 年，标注峰值（可选）
+        if 2010 in data.year.values:
+            y_2010 = data[data.year == 2010]['prevalence'].values[0]
+            ax.scatter(2010, y_2010, color='blue', s=80, zorder=4, label='2010年峰值')
+
+        # 在图表角落显示 R²
+        ax.text(0.05, 0.95, f'R² = {r2:.3f}', transform=ax.transAxes,
+                fontsize=10, verticalalignment='top',
+                bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+
         ax.set_title("高血压患病率趋势与预测")
         ax.set_xlabel("年份")
-        ax.set_ylabel("患病率(%)")
-        ax.legend()
+        ax.set_ylabel("患病率 (%)")
+        ax.legend(loc='upper left')
         ax.grid(alpha=0.3)
+
         st.pyplot(fig)
-        st.success(f"✅预测2025年高血压患病率：**{pred_2025:.1f}%**")
+
+        # 显示预测结果及 R²
+        st.success(f"✅ 预测2026年高血压患病率：**{pred_2026:.1f}%** (模型拟合优度 R² = {r2:.3f})")
+
 
 elif page == "ℹ️项目介绍":
     st.markdown("<h1 style='color:#34495e'>ℹ️项目介绍</h1>", unsafe_allow_html=True)
     st.markdown("""
 # 基于大数据分析的高血压患病风险评估与预测系统
 
-# 数据规模
-✅ 时间跨度：2000–2024 年全国连续监测数据
-✅ 数据量级：10万+ 条人群流行病学记录
-✅ 覆盖范围：全国31省、自治区、直辖市
+## 数据规模
+✅ 时间跨度：2000–2024 年全国连续监测数据  
+✅ 数据量级：10万+ 条人群流行病学记录  
+✅ 覆盖范围：全国31省、自治区、直辖市  
 
-# 核心技术
-✅ Z-score标准化风险合成模型
-✅ 机器学习线性回归预测
-✅ 政策干预模拟
-✅ 多维度可视化分析
-✅ 全国空间热力图分析
-✅ 自动数据洞察
+## 核心技术
+✅ Z-score标准化风险合成模型  
+✅ 机器学习线性回归预测  
+✅ 政策干预模拟  
+✅ 多维度可视化分析  
+✅ 全国空间热力图分析  
+✅ 自动数据洞察  
 
-# 权重说明（专家德尔菲法+公共卫生文献）
-总体患病率：0.4
-老龄化程度：0.25
-性别差异：0.2
-城乡差异：0.15
+## 权重说明（专家德尔菲法+公共卫生文献）
+总体患病率：0.4  
+老龄化程度：0.25  
+性别差异：0.2  
+城乡差异：0.15  
 
-# 数据来源（权威可查）
-1. 2025年《Cell》子刊：全国18岁及以上成人高血压患病率31.6%（阜外医院王增武团队）
-2. 2018年《中华地方病学杂志》Meta分析：西藏、海南及区域合并患病率
-3.中国慢性病及危险因素检测
-4.中国高血压调查
-5.中国居民健康状况调查
-6. 无精确省份数据采用全国均值，保证科学严谨
-# 适用场景
+## 数据来源（权威可查）
+1. 2025年《Cell》子刊：全国18岁及以上成人高血压患病率31.6%（阜外医院王增武团队）  
+2. 2018年《中华地方病学杂志》Meta分析：西藏、海南及区域合并患病率  
+3. 中国慢性病及危险因素监测  
+4. 中国高血压调查  
+5. 中国居民健康状况调查  
+6. 无精确省份数据采用全国均值，保证科学严谨  
+7. 知晓率、治疗率、控制率：BMJ 2023；中国慢性病与危险因素监测(CCDRFS) 2004-2018  
+8. 2010年患病率：李镒冲等，中华预防医学杂志，2012；2008年城乡患病率：李永泉等，中国公共卫生，2014  
+
+## 适用场景
 公共卫生决策、慢病管理、健康风险预警、干预效果评估、区域防控优化
 """)
     st.divider()
     st.markdown("<p style='text-align:center'>©2026软件设计大赛｜蚌埠医科大学</p >", unsafe_allow_html=True)
-
-
